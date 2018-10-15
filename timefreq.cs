@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Numerics;
+using System.Threading.Tasks;
+
 
 namespace DigitalMusicAnalysis
 {
@@ -9,18 +11,26 @@ namespace DigitalMusicAnalysis
         public int wSamp;
         public Complex[] twiddles;
 
+        //This is taking forever needs the improvement
         public timefreq(float[] x, int windowSamp)
         {
-            int ii;
+            //int ii;
             double pi = 3.14159265;
             Complex i = Complex.ImaginaryOne;
             this.wSamp = windowSamp;
             twiddles = new Complex[wSamp];
-            for (ii = 0; ii < wSamp; ii++)
+
+            //increased????
+            Parallel.For(0, wSamp, ii =>
             {
                 double a = 2 * pi * ii / (double)wSamp;
                 twiddles[ii] = Complex.Pow(Complex.Exp(-i), (float)a);
-            }
+            });
+            //for (ii = 0; ii < wSamp; ii++)
+            //{
+            //    double a = 2 * pi * ii / (double)wSamp;
+            //    twiddles[ii] = Complex.Pow(Complex.Exp(-i), (float)a);
+            //}
 
             timeFreqData = new float[wSamp/2][];
 
@@ -54,49 +64,70 @@ namespace DigitalMusicAnalysis
 
         float[][] stft(Complex[] x, int wSamp)
         {
-            int ii = 0;
-            int jj = 0;
-            int kk = 0;
-            int ll = 0;
+            //int ii = 0;
+            //int jj = 0;
+            //int kk = 0;
+            //int ll = 0;
             int N = x.Length;
             float fftMax = 0;
-            
+
             float[][] Y = new float[wSamp / 2][];
 
-            for (ll = 0; ll < wSamp / 2; ll++)
+            for (int ll = 0; ll < wSamp / 2; ll++)
             {
                 Y[ll] = new float[2 * (int)Math.Floor((double)N / (double)wSamp)];
             }
-            
-            Complex[] temp = new Complex[wSamp];
-            Complex[] tempFFT = new Complex[wSamp];
 
-            for (ii = 0; ii < 2 * Math.Floor((double)N / (double)wSamp) - 1; ii++)
+            //Complex[] temp = new Complex[wSamp];
+            Complex[][] tempFFT = new Complex[(int)(2 * Math.Floor((double)N / (double)wSamp) - 1)][];
+            Complex[][] tempTemp = new Complex[(int)(2 * Math.Floor((double)N / (double)wSamp) - 1)][];
+
+            //Parallising this would decrease time by half
+            for (int ii = 0; ii < 2 * Math.Floor((double)N / (double)wSamp) - 1; ii++)
             {
-
-                for (jj = 0; jj < wSamp; jj++)
+                //Parallel.For(0, (int)(2 * Math.Floor((double)N / (double)wSamp) - 1), ii =>
+                //{
+                Complex[] temp = new Complex[wSamp];
+                for (int jj = 0; jj < wSamp; jj++)
                 {
+                    //Parallel.For(0, wSamp, jj =>
+                    //{
+                    //outer not safe because of this
                     temp[jj] = x[ii * (wSamp / 2) + jj];
+                    //});
                 }
+                tempTemp[ii] = temp;
+                //tempFFT[ii] = fft(temp);
+                //});
+            }
 
-                tempFFT = fft(temp);
+            //for (int ii = 0; ii < 2 * Math.Floor((double)N / (double)wSamp) - 1; ii++)
+            //{
+            Parallel.For(0, (int)(2 * Math.Floor((double)N / (double)wSamp) - 1), ii =>
+        {
+            tempFFT[ii] = fft(tempTemp[ii]);
+        });
+            //}
 
-                for (kk = 0; kk < wSamp / 2; kk++)
+            //gets rid of flow dependency
+            //for (int ii = 0; ii < 2 * Math.Floor((double)N / (double)wSamp) - 1; ii++)
+            //{
+            Parallel.For(0, (int)(2 * Math.Floor((double)N / (double)wSamp) - 1), ii => {
+                Parallel.For(0, wSamp / 2, kk =>
                 {
-                    Y[kk][ii] = (float)Complex.Abs(tempFFT[kk]);
+                    Y[kk][ii] = (float)Complex.Abs(tempFFT[ii][kk]);
 
                     if (Y[kk][ii] > fftMax)
                     {
                         fftMax = Y[kk][ii];
                     }
-                }
+                });
+            });
 
-
-            }
-
-            for (ii = 0; ii < 2 * Math.Floor((double)N / (double)wSamp) - 1; ii++)
+            //NOT SAFE could try parallel
+            for (int ii = 0; ii < 2 * Math.Floor((double)N / (double)wSamp) - 1; ii++)
             {
-                for (kk = 0; kk < wSamp / 2; kk++)
+                for (int kk = 0; kk < wSamp / 2; kk++)
                 {
                     Y[kk][ii] /= fftMax;
                 }
@@ -107,8 +138,8 @@ namespace DigitalMusicAnalysis
 
         Complex[] fft(Complex[] x)
         {
-            int ii = 0;
-            int kk = 0;
+            //int ii = 0;
+            //int kk = 0;
             int N = x.Length;
 
             Complex[] Y = new Complex[N];
@@ -126,9 +157,10 @@ namespace DigitalMusicAnalysis
                 Complex[] even = new Complex[N/2];
                 Complex[] odd = new Complex[N/2];
 
-                for (ii = 0; ii < N; ii++)
+                for (int ii = 0; ii < N; ii++)
                 {
-
+                    //Parallel.For(0, N, ii =>
+                    //{
                     if (ii % 2 == 0)
                     {
                         even[ii / 2] = x[ii];
@@ -137,14 +169,20 @@ namespace DigitalMusicAnalysis
                     {
                         odd[(ii - 1) / 2] = x[ii];
                     }
+                //});
+
                 }
 
                 E = fft(even);
                 O = fft(odd);
 
-                for (kk = 0; kk < N; kk++)
+                for (int kk = 0; kk < N; kk++)
                 {
+                    //Parallel.For(0, N, kk =>
+                    //{
                     Y[kk] = E[(kk % (N / 2))] + O[(kk % (N / 2))] * twiddles[kk * wSamp / N];
+
+                    //});
                 }
             }
 

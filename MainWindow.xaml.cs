@@ -11,6 +11,7 @@ using System.Threading;
 using System.Numerics;
 using NAudio.Wave;
 using System.Xml;
+using System.Threading.Tasks;
 
 namespace DigitalMusicAnalysis
 {
@@ -267,13 +268,20 @@ namespace DigitalMusicAnalysis
             stftRep = new timefreq(waveIn.wave, 2048);
             pixelArray = new float[stftRep.timeFreqData[0].Length * stftRep.wSamp / 2];
             //Safe to Paralise
-            for (int jj = 0; jj < stftRep.wSamp / 2; jj++)
+            //for (int jj = 0; jj < stftRep.wSamp / 2; jj++)
+            //{
+            //    for (int ii = 0; ii < stftRep.timeFreqData[0].Length; ii++)
+            //    {
+            //        pixelArray[jj * stftRep.timeFreqData[0].Length + ii] = stftRep.timeFreqData[jj][ii];
+            //    }
+            //}
+            Parallel.For(0, stftRep.wSamp / 2, jj =>
             {
-                for (int ii = 0; ii < stftRep.timeFreqData[0].Length; ii++)
-                {
-                    pixelArray[jj * stftRep.timeFreqData[0].Length + ii] = stftRep.timeFreqData[jj][ii];
-                }
-            }
+                Parallel.For(0, stftRep.timeFreqData[0].Length, ii =>
+                    {
+                        pixelArray[jj * stftRep.timeFreqData[0].Length + ii] = stftRep.timeFreqData[jj][ii];
+                    });
+            });
 
         }
 
@@ -306,6 +314,7 @@ namespace DigitalMusicAnalysis
 
             HFC = new float[stftRep.timeFreqData[0].Length];
 
+            ////HFC fuckup
             //first thing to improve
             //Can be improved
             for (int jj = 0; jj < stftRep.timeFreqData[0].Length; jj++)
@@ -313,6 +322,7 @@ namespace DigitalMusicAnalysis
                 //Can B
                 for (int ii = 0; ii < stftRep.wSamp / 2; ii++)
                 {
+                    //Causing fuckups
                     HFC[jj] = HFC[jj] + (float)Math.Pow((double)stftRep.timeFreqData[ii][jj] * ii, 2);
                 }
 
@@ -325,6 +335,7 @@ namespace DigitalMusicAnalysis
                 HFC[jj] = (float)Math.Pow((HFC[jj] / maxi), 2);
             }
 
+            //end of this goes up in note count
             for (int jj = 0; jj < stftRep.timeFreqData[0].Length; jj++)
             {
                 if (starts > stops)
