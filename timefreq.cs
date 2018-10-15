@@ -64,10 +64,6 @@ namespace DigitalMusicAnalysis
 
         float[][] stft(Complex[] x, int wSamp)
         {
-            //int ii = 0;
-            //int jj = 0;
-            //int kk = 0;
-            //int ll = 0;
             int N = x.Length;
             float fftMax = 0;
 
@@ -82,27 +78,17 @@ namespace DigitalMusicAnalysis
             Complex[][] tempFFT = new Complex[(int)(2 * Math.Floor((double)N / (double)wSamp) - 1)][];
             Complex[][] tempTemp = new Complex[(int)(2 * Math.Floor((double)N / (double)wSamp) - 1)][];
 
-            //Parallising this would decrease time by half
             for (int ii = 0; ii < 2 * Math.Floor((double)N / (double)wSamp) - 1; ii++)
             {
-                //Parallel.For(0, (int)(2 * Math.Floor((double)N / (double)wSamp) - 1), ii =>
-                //{
                 Complex[] temp = new Complex[wSamp];
                 for (int jj = 0; jj < wSamp; jj++)
                 {
-                    //Parallel.For(0, wSamp, jj =>
-                    //{
                     //outer not safe because of this
                     temp[jj] = x[ii * (wSamp / 2) + jj];
-                    //});
-                }
+                    }
                 tempTemp[ii] = temp;
-                //tempFFT[ii] = fft(temp);
-                //});
             }
 
-            //for (int ii = 0; ii < 2 * Math.Floor((double)N / (double)wSamp) - 1; ii++)
-            //{
             Parallel.For(0, (int)(2 * Math.Floor((double)N / (double)wSamp) - 1), ii =>
         {
             tempFFT[ii] = fft(tempTemp[ii]);
@@ -112,6 +98,7 @@ namespace DigitalMusicAnalysis
             //gets rid of flow dependency
             //for (int ii = 0; ii < 2 * Math.Floor((double)N / (double)wSamp) - 1; ii++)
             //{
+            //paralising this could increase times
             Parallel.For(0, (int)(2 * Math.Floor((double)N / (double)wSamp) - 1), ii => {
                 Parallel.For(0, wSamp / 2, kk =>
                 {
