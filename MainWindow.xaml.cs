@@ -23,8 +23,7 @@ namespace DigitalMusicAnalysis
         private float[] pixelArray;
         private musicNote[] sheetmusic;
         private WaveOut playback; // = new WaveOut();
-        private Complex[] twiddles;
-        private Complex[] compX;
+        private Complex[][] twiddles;
         private string filename;
         private enum pitchConv { C, Db, D, Eb, E, F, Gb, G, Ab, A, Bb, B };
         private double bpm = 70;
@@ -292,8 +291,6 @@ namespace DigitalMusicAnalysis
             float[] HFC;
             int starts = 0;
             int stops = 0;
-            Complex[] Y;
-            double[] absY;
             List<int> lengths;
             List<int> noteStarts;
             List<int> noteStops;
@@ -317,19 +314,24 @@ namespace DigitalMusicAnalysis
             ////HFC fuckup
             //first thing to improve
             //Can be improved
-            for (int jj = 0; jj < stftRep.timeFreqData[0].Length; jj++)
+            //for (int jj = 0; jj < stftRep.timeFreqData[0].Length; jj++)
+            //{
+            Parallel.For(0, stftRep.timeFreqData[0].Length, jj =>
             {
-                //Can B
+                
                 for (int ii = 0; ii < stftRep.wSamp / 2; ii++)
                 {
+                    //parallising this loop is bad
                     //Causing fuckups
                     HFC[jj] = HFC[jj] + (float)Math.Pow((double)stftRep.timeFreqData[ii][jj] * ii, 2);
-                }
 
-            }
+                }
+            });
+            //}
 
             float maxi = HFC.Max();
 
+            //not worth
             for (int jj = 0; jj < stftRep.timeFreqData[0].Length; jj++)
             {
                 HFC[jj] = (float)Math.Pow((HFC[jj] / maxi), 2);
@@ -371,61 +373,81 @@ namespace DigitalMusicAnalysis
             {
                 lengths.Add(noteStops[ii] - noteStarts[ii]);
             }
+            int breakint = 0;
+
+            //this is where the meat happens
+            //insafe because of the instant yeet
+            int[] nearest = new int[lengths.Count];
+            Complex[][] Y = new Complex[lengths.Count][];
+            Complex[][] compX = new Complex[lengths.Count][];
+            twiddles = new Complex[lengths.Count][];
 
             for (int mm = 0; mm < lengths.Count; mm++)
             {
-                int nearest = (int)Math.Pow(2, Math.Ceiling(Math.Log(lengths[mm], 2)));
-                twiddles = new Complex[nearest];
-                for (ll = 0; ll < nearest; ll++)
+                //Parallel.For(0, lengths.Count, mm =>
+                //{
+                nearest[mm] = (int)Math.Pow(2, Math.Ceiling(Math.Log(lengths[mm], 2)));
+                twiddles[mm] = new Complex[nearest[mm]];
+                for (ll = 0; ll < nearest[mm]; ll++)
                 {
-                    double a = 2 * pi * ll / (double)nearest;
-                    twiddles[ll] = Complex.Pow(Complex.Exp(-i), (float)a);
+                    double a = 2 * pi * ll / (double)nearest[mm];
+                    twiddles[mm][ll] = Complex.Pow(Complex.Exp(-i), (float)a);
                 }
 
-                compX = new Complex[nearest];
-                for (int kk = 0; kk < nearest; kk++)
+                compX[mm] = new Complex[nearest[mm]];
+                for (int kk = 0; kk < nearest[mm]; kk++)
                 {
                     if (kk < lengths[mm] && (noteStarts[mm] + kk) < waveIn.wave.Length)
                     {
-                        compX[kk] = waveIn.wave[noteStarts[mm] + kk];
+                        compX[mm][kk] = waveIn.wave[noteStarts[mm] + kk];
                     }
                     else
                     {
-                        compX[kk] = Complex.Zero;
+                        compX[mm][kk] = Complex.Zero;
                     }
                 }
+                //2ms
+            }
+            breakint = 1;
+            //for (mm =0; mm < lengths.Count; mm++) {
+            Parallel.For(0, lengths.Count, mm => { 
+                Y[mm] = new Complex[nearest[mm]];
 
-                Y = new Complex[nearest];
+                Y[mm] = fft(compX[mm], nearest[mm],mm);
 
-                Y = fft(compX, nearest);
+                double[] absY;
 
-                absY = new double[nearest];
+                absY = new double[nearest[mm]];
 
                 double maximum = 0;
                 int maxInd = 0;
 
-                for (int jj = 0; jj < Y.Length; jj++)
-                {
-                    absY[jj] = Y[jj].Magnitude;
+                //for (int jj = 0; jj < Y[mm].Length; jj++)
+                //{
+                //no improvement paral
+                    Parallel.For(0, Y[mm].Length, jj => { 
+                    absY[jj] = Y[mm][jj].Magnitude;
                     if (absY[jj] > maximum)
                     {
                         maximum = absY[jj];
                         maxInd = jj;
                     }
-                }
-
-                for (int div = 6; div > 1; div--)
+                //}
+                    });
+            //max ind is 50% broken
+            for (int div = 6; div > 1; div--)
                 {
 
-                    if (maxInd > nearest / 2)
+                    if (maxInd > nearest[mm] / 2)
                     {
-                        if (absY[(int)Math.Floor((double)(nearest - maxInd) / div)] / absY[(maxInd)] > 0.10)
+                        if (absY[(int)Math.Floor((double)(nearest[mm] - maxInd) / div)] / absY[(maxInd)] > 0.10)
                         {
-                            maxInd = (nearest - maxInd) / div;
+                            maxInd = (nearest[mm] - maxInd) / div;
                         }
                     }
                     else
                     {
+                        //these bottom calcs are breaking
                         if (absY[(int)Math.Floor((double)maxInd / div)] / absY[(maxInd)] > 0.10)
                         {
                             maxInd = maxInd / div;
@@ -433,18 +455,22 @@ namespace DigitalMusicAnalysis
                     }
                 }
 
-                if (maxInd > nearest / 2)
+                //one of these might be breaking
+                if (maxInd > nearest[mm] / 2)
                 {
-                    pitches.Add((nearest - maxInd) * waveIn.SampleRate / nearest);
+                    pitches.Add((nearest[mm] - maxInd) * waveIn.SampleRate / nearest[mm]);
                 }
                 else
                 {
-                    pitches.Add(maxInd * waveIn.SampleRate / nearest);
+                    pitches.Add(maxInd * waveIn.SampleRate / nearest[mm]);
                 }
+                //5ms
 
-
-            }
-
+            //}
+                });
+            breakint = 0;
+            //1.713s
+            //});
             musicNote[] noteArray;
             noteArray = new musicNote[noteStarts.Count()];
 
@@ -468,6 +494,7 @@ namespace DigitalMusicAnalysis
 
             string[] alignedStrings = new string[2];
 
+            //Bj in string match breaks because not pitch array is out of bounds
             alignedStrings = stringMatch(sheetPitchArray, notePitchArray);
 
             musicNote[] alignedStaffArray = new musicNote[alignedStrings[0].Length / 2];
@@ -499,6 +526,7 @@ namespace DigitalMusicAnalysis
                 }
             }
 
+            breakint = 1;
             // STAFF TAB DISPLAY
 
             Ellipse[] notes;
@@ -735,10 +763,10 @@ namespace DigitalMusicAnalysis
 
         // FFT function for Pitch Detection
 
-        private Complex[] fft(Complex[] x, int L)
+        private Complex[] fft(Complex[] x, int L, int mm)
         {
-            int ii = 0;
-            int kk = 0;
+            //int ii = 0;
+            //int kk = 0;
             int N = x.Length;
 
             Complex[] Y = new Complex[N];
@@ -755,9 +783,8 @@ namespace DigitalMusicAnalysis
                 Complex[] even = new Complex[N / 2];
                 Complex[] odd = new Complex[N / 2];
 
-                for (ii = 0; ii < N; ii++)
+                for (int ii = 0; ii < N; ii++)
                 {
-
                     if (ii % 2 == 0)
                     {
                         even[ii / 2] = x[ii];
@@ -768,14 +795,16 @@ namespace DigitalMusicAnalysis
                     }
                 }
 
-                E = fft(even, L);
-                O = fft(odd, L);
+                E = fft(even, L,mm);
+                O = fft(odd, L,mm);
 
-                for (kk = 0; kk < N; kk++)
+                for (int kk = 0; kk < N; kk++)
                 {
-                    Y[kk] = E[(kk % (N / 2))] + O[(kk % (N / 2))] * twiddles[kk * (L / N)];
+                //Parallel.For(0, N, kk => { 
+                    Y[kk] = E[(kk % (N / 2))] + O[(kk % (N / 2))] * twiddles[mm][kk * (L / N)];
                 }
-            }
+                //});
+        }
 
             return Y;
         }
