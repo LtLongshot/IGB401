@@ -763,50 +763,96 @@ namespace DigitalMusicAnalysis
 
         // FFT function for Pitch Detection
 
-        private Complex[] fft(Complex[] x, int L, int mm)
+        //private Complex[] fft(Complex[] x, int L, int mm)
+        //{
+        //    //int ii = 0;
+        //    //int kk = 0;
+        //    int N = x.Length;
+
+        //    Complex[] Y = new Complex[N];
+
+        //    if (N == 1)
+        //    {
+        //        Y[0] = x[0];
+        //    }
+        //    else
+        //    {
+
+        //        Complex[] E = new Complex[N / 2];
+        //        Complex[] O = new Complex[N / 2];
+        //        Complex[] even = new Complex[N / 2];
+        //        Complex[] odd = new Complex[N / 2];
+
+        //        for (int ii = 0; ii < N; ii++)
+        //        {
+        //            if (ii % 2 == 0)
+        //            {
+        //                even[ii / 2] = x[ii];
+        //            }
+        //            if (ii % 2 == 1)
+        //            {
+        //                odd[(ii - 1) / 2] = x[ii];
+        //            }
+        //        }
+
+        //        E = fft(even, L,mm);
+        //        O = fft(odd, L,mm);
+
+        //        for (int kk = 0; kk < N; kk++)
+        //        {
+        //        //Parallel.For(0, N, kk => { 
+        //            Y[kk] = E[(kk % (N / 2))] + O[(kk % (N / 2))] * twiddles[mm][kk * (L / N)];
+        //        }
+        //        //});
+        //}
+
+        //    return Y;
+        //}
+
+        public static int BitReverse(int n, int bits)
         {
-            //int ii = 0;
-            //int kk = 0;
-            int N = x.Length;
+            int reversedN = n;
+            int count = bits - 1;
 
-            Complex[] Y = new Complex[N];
-
-            if (N == 1)
+            n >>= 1;
+            while (n > 0)
             {
-                Y[0] = x[0];
+                reversedN = (reversedN << 1) | (n & 1);
+                count--;
+                n >>= 1;
             }
-            else
-            {
 
-                Complex[] E = new Complex[N / 2];
-                Complex[] O = new Complex[N / 2];
-                Complex[] even = new Complex[N / 2];
-                Complex[] odd = new Complex[N / 2];
-
-                for (int ii = 0; ii < N; ii++)
-                {
-                    if (ii % 2 == 0)
-                    {
-                        even[ii / 2] = x[ii];
-                    }
-                    if (ii % 2 == 1)
-                    {
-                        odd[(ii - 1) / 2] = x[ii];
-                    }
-                }
-
-                E = fft(even, L,mm);
-                O = fft(odd, L,mm);
-
-                for (int kk = 0; kk < N; kk++)
-                {
-                //Parallel.For(0, N, kk => { 
-                    Y[kk] = E[(kk % (N / 2))] + O[(kk % (N / 2))] * twiddles[mm][kk * (L / N)];
-                }
-                //});
+            return ((reversedN << count) & ((1 << bits) - 1));
         }
 
-            return Y;
+        public Complex[] fft(Complex[] x, int L, int mm)
+        {
+            int length = x.Length;
+            Complex[] output = new Complex[length];
+
+            int bits = (int)Math.Log(length, 2);
+            for (int j = 0; j < length; j++)
+            {
+                int swapPos = BitReverse(j, bits);
+                output[j] = x[swapPos];
+            }
+            for (int N = 2; N <= length; N <<= 1)
+            {
+                for (int i = 0; i < length; i += N)
+                {
+                    for (int k = 0; k < N / 2; k++)
+                    {
+                        int evenIndex = i + k;
+                        int oddIndex = i + k + (N / 2);
+                        var even = output[evenIndex];
+                        var odd = output[oddIndex];
+                        output[evenIndex] = even + odd * twiddles[mm][k * (L / N)];
+                        output[oddIndex] = even + odd * twiddles[mm][(k + (N / 2)) * (L / N)];
+                    }
+                }
+            }
+
+            return output;
         }
 
         private musicNote[] readXML(string filename)
