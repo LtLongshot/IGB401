@@ -12,6 +12,7 @@ using System.Numerics;
 using NAudio.Wave;
 using System.Xml;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace DigitalMusicAnalysis
 {
@@ -276,10 +277,10 @@ namespace DigitalMusicAnalysis
             //}
             Parallel.For(0, stftRep.wSamp / 2, jj =>
             {
-                Parallel.For(0, stftRep.timeFreqData[0].Length, ii =>
+                    for (int ii = 0; ii < stftRep.timeFreqData[0].Length; ii++)
                     {
                         pixelArray[jj * stftRep.timeFreqData[0].Length + ii] = stftRep.timeFreqData[jj][ii];
-                    });
+                    }
             });
 
         }
@@ -294,16 +295,17 @@ namespace DigitalMusicAnalysis
             List<int> lengths;
             List<int> noteStarts;
             List<int> noteStops;
-            List<double> pitches;
+            double[] pitches;
 
             int ll;
             double pi = 3.14159265;
             Complex i = Complex.ImaginaryOne;
 
+            //max size
             noteStarts = new List<int>(100);
             noteStops = new List<int>(100);
             lengths = new List<int>(100);
-            pitches = new List<double>(100);
+            pitches = new double[100];
 
             SolidColorBrush sheetBrush = new SolidColorBrush(Colors.Black);
             SolidColorBrush ErrorBrush = new SolidColorBrush(Colors.Red);
@@ -422,18 +424,18 @@ namespace DigitalMusicAnalysis
                 double maximum = 0;
                 int maxInd = 0;
 
-                //for (int jj = 0; jj < Y[mm].Length; jj++)
-                //{
+                for (int jj = 0; jj < Y[mm].Length; jj++)
+                {
                 //no improvement paral
-                    Parallel.For(0, Y[mm].Length, jj => { 
+                    //Parallel.For(0, Y[mm].Length, jj => { 
                     absY[jj] = Y[mm][jj].Magnitude;
                     if (absY[jj] > maximum)
                     {
                         maximum = absY[jj];
                         maxInd = jj;
                     }
-                //}
-                    });
+                }
+                    //});
             //max ind is 50% broken
             for (int div = 6; div > 1; div--)
                 {
@@ -458,11 +460,11 @@ namespace DigitalMusicAnalysis
                 //one of these might be breaking
                 if (maxInd > nearest[mm] / 2)
                 {
-                    pitches.Add((nearest[mm] - maxInd) * waveIn.SampleRate / nearest[mm]);
+                    pitches[mm]=((nearest[mm] - maxInd) * waveIn.SampleRate / nearest[mm]);
                 }
                 else
                 {
-                    pitches.Add(maxInd * waveIn.SampleRate / nearest[mm]);
+                    pitches[mm]=(maxInd * waveIn.SampleRate / nearest[mm]);
                 }
                 //5ms
 
@@ -763,97 +765,97 @@ namespace DigitalMusicAnalysis
 
         // FFT function for Pitch Detection
 
-        //private Complex[] fft(Complex[] x, int L, int mm)
-        //{
-        //    //int ii = 0;
-        //    //int kk = 0;
-        //    int N = x.Length;
-
-        //    Complex[] Y = new Complex[N];
-
-        //    if (N == 1)
-        //    {
-        //        Y[0] = x[0];
-        //    }
-        //    else
-        //    {
-
-        //        Complex[] E = new Complex[N / 2];
-        //        Complex[] O = new Complex[N / 2];
-        //        Complex[] even = new Complex[N / 2];
-        //        Complex[] odd = new Complex[N / 2];
-
-        //        for (int ii = 0; ii < N; ii++)
-        //        {
-        //            if (ii % 2 == 0)
-        //            {
-        //                even[ii / 2] = x[ii];
-        //            }
-        //            if (ii % 2 == 1)
-        //            {
-        //                odd[(ii - 1) / 2] = x[ii];
-        //            }
-        //        }
-
-        //        E = fft(even, L,mm);
-        //        O = fft(odd, L,mm);
-
-        //        for (int kk = 0; kk < N; kk++)
-        //        {
-        //        //Parallel.For(0, N, kk => { 
-        //            Y[kk] = E[(kk % (N / 2))] + O[(kk % (N / 2))] * twiddles[mm][kk * (L / N)];
-        //        }
-        //        //});
-        //}
-
-        //    return Y;
-        //}
-
-        public static int BitReverse(int n, int bits)
+        private Complex[] fft(Complex[] x, int L, int mm)
         {
-            int reversedN = n;
-            int count = bits - 1;
+            //int ii = 0;
+            //int kk = 0;
+            int N = x.Length;
 
-            n >>= 1;
-            while (n > 0)
+            Complex[] Y = new Complex[N];
+
+            if (N == 1)
             {
-                reversedN = (reversedN << 1) | (n & 1);
-                count--;
-                n >>= 1;
+                Y[0] = x[0];
             }
-
-            return ((reversedN << count) & ((1 << bits) - 1));
-        }
-
-        public Complex[] fft(Complex[] x, int L, int mm)
-        {
-            int length = x.Length;
-            Complex[] output = new Complex[length];
-
-            int bits = (int)Math.Log(length, 2);
-            for (int j = 0; j < length; j++)
+            else
             {
-                int swapPos = BitReverse(j, bits);
-                output[j] = x[swapPos];
-            }
-            for (int N = 2; N <= length; N <<= 1)
-            {
-                for (int i = 0; i < length; i += N)
+
+                Complex[] E = new Complex[N / 2];
+                Complex[] O = new Complex[N / 2];
+                Complex[] even = new Complex[N / 2];
+                Complex[] odd = new Complex[N / 2];
+
+                for (int ii = 0; ii < N; ii++)
                 {
-                    for (int k = 0; k < N / 2; k++)
+                    if (ii % 2 == 0)
                     {
-                        int evenIndex = i + k;
-                        int oddIndex = i + k + (N / 2);
-                        var even = output[evenIndex];
-                        var odd = output[oddIndex];
-                        output[evenIndex] = even + odd * twiddles[mm][k * (L / N)];
-                        output[oddIndex] = even + odd * twiddles[mm][(k + (N / 2)) * (L / N)];
+                        even[ii / 2] = x[ii];
+                    }
+                    if (ii % 2 == 1)
+                    {
+                        odd[(ii - 1) / 2] = x[ii];
                     }
                 }
+
+                E = fft(even, L, mm);
+                O = fft(odd, L, mm);
+
+                for (int kk = 0; kk < N; kk++)
+                {
+                    //Parallel.For(0, N, kk => { 
+                    Y[kk] = E[(kk % (N / 2))] + O[(kk % (N / 2))] * twiddles[mm][kk * (L / N)];
+                }
+                //});
             }
 
-            return output;
+            return Y;
         }
+
+        //public static int BitReverse(int n, int bits)
+        //{
+        //    int reversedN = n;
+        //    int count = bits - 1;
+
+        //    n >>= 1;
+        //    while (n > 0)
+        //    {
+        //        reversedN = (reversedN << 1) | (n & 1);
+        //        count--;
+        //        n >>= 1;
+        //    }
+
+        //    return ((reversedN << count) & ((1 << bits) - 1));
+        //}
+
+        //public Complex[] fft(Complex[] x, int L, int mm)
+        //{
+        //    int length = x.Length;
+        //    Complex[] output = new Complex[length];
+
+        //    int bits = (int)Math.Log(length, 2);
+        //    for (int j = 0; j < length; j++)
+        //    {
+        //        int swapPos = BitReverse(j, bits);
+        //        output[j] = x[swapPos];
+        //    }
+        //    for (int N = 2; N <= length; N <<= 1)
+        //    {
+        //        for (int i = 0; i < length; i += N)
+        //        {
+        //            for (int k = 0; k < N / 2; k++)
+        //            {
+        //                int evenIndex = i + k;
+        //                int oddIndex = i + k + (N / 2);
+        //                var even = output[evenIndex];
+        //                var odd = output[oddIndex];
+        //                output[evenIndex] = even + odd * twiddles[mm][k * (L / N)];
+        //                output[oddIndex] = even + odd * twiddles[mm][(k + (N / 2)) * (L / N)];
+        //            }
+        //        }
+        //    }
+
+        //    return output;
+        //}
 
         private musicNote[] readXML(string filename)
         {

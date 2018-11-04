@@ -4,17 +4,17 @@
 winexe
 C#
 .cs
-D:\Github\IGB401\obj\Release\
+D:\Github\IGB401\obj\x64\Debug\
 DigitalMusicAnalysis
 none
 false
-TRACE
+
 D:\Github\IGB401\App.xaml
 11151548125
 
-9-824896753
+13-270131216
 15-2068605494
 MainWindow.xaml;
 
-False
+True
 

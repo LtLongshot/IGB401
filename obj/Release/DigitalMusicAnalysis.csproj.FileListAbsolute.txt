@@ -16,3 +16,21 @@ C:\Users\Alister\Desktop\DigitalMusicAnalysis Improved\IGB401\obj\Release\Digita
 C:\Users\Alister\Desktop\DigitalMusicAnalysis Improved\IGB401\obj\Release\DigitalMusicAnalysis.exe
 C:\Users\Alister\Desktop\DigitalMusicAnalysis Improved\IGB401\obj\Release\DigitalMusicAnalysis.pdb
 C:\Users\Alister\Desktop\DigitalMusicAnalysis Improved\IGB401\obj\Release\DigitalMusicAnalysis.csprojAssemblyReference.cache
+D:\Github\IGB401\bin\Release\DigitalMusicAnalysis.exe.config
+D:\Github\IGB401\bin\Release\DigitalMusicAnalysis.exe
+D:\Github\IGB401\bin\Release\DigitalMusicAnalysis.pdb
+D:\Github\IGB401\bin\Release\NAudio.dll
+D:\Github\IGB401\bin\Release\NAudio.xml
+D:\Github\IGB401\obj\Release\DigitalMusicAnalysis.csprojAssemblyReference.cache
+D:\Github\IGB401\obj\Release\MainWindow.g.cs
+D:\Github\IGB401\obj\Release\App.g.cs
+D:\Github\IGB401\obj\Release\DigitalMusicAnalysis_MarkupCompile.cache
+D:\Github\IGB401\obj\Release\DigitalMusicAnalysis_MarkupCompile.lref
+D:\Github\IGB401\obj\Release\MainWindow.baml
+D:\Github\IGB401\obj\Release\DigitalMusicAnalysis.g.resources
+D:\Github\IGB401\obj\Release\DigitalMusicAnalysis.Properties.Resources.resources
+D:\Github\IGB401\obj\Release\DigitalMusicAnalysis.csproj.GenerateResource.cache
+D:\Github\IGB401\obj\Release\DigitalMusicAnalysis.csproj.CoreCompileInputs.cache
+D:\Github\IGB401\obj\Release\DigitalMusicAnalysis.csproj.CopyComplete
+D:\Github\IGB401\obj\Release\DigitalMusicAnalysis.exe
+D:\Github\IGB401\obj\Release\DigitalMusicAnalysis.pdb
